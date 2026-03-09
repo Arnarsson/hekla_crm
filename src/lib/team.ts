@@ -12,18 +12,21 @@ export interface TeamMember {
 
 export const TEAM_MEMBERS: TeamMember[] = [
   { id: "sven", name: "Sven", initials: "SV", color: "bg-blue-600", role: "Lead" },
-  { id: "hjalti", name: "Hjalti", initials: "HJ", color: "bg-purple-600", role: "Engineering" },
-  { id: "christopher", name: "Christopher", initials: "CJ", color: "bg-green-600", role: "Operations" },
+  { id: "hjalte", name: "Hjalte", initials: "HJ", color: "bg-purple-600", role: "Engineering" },
+  { id: "kristoffer", name: "Kristoffer", initials: "KR", color: "bg-green-600", role: "Operations" },
 ];
 
 // Aliases map messy extraction data to canonical member IDs
 const ALIASES: Record<string, string> = {
   sven: "sven",
-  hjalti: "hjalti",
-  "hjalti jonsson": "hjalti",
-  christopher: "christopher",
-  "christopher james": "christopher",
-  chris: "christopher",
+  hjalte: "hjalte",
+  hjalti: "hjalte",
+  "hjalti jonsson": "hjalte",
+  "hjalte jonsson": "hjalte",
+  kristoffer: "kristoffer",
+  christopher: "kristoffer",
+  "christopher james": "kristoffer",
+  chris: "kristoffer",
 };
 
 export function getMember(idOrName: string): TeamMember | undefined {
@@ -53,7 +56,7 @@ export function normalizeOwner(raw: string): string {
 
   // Handle "all three" / "all"
   if (lower === "all three" || lower === "all") {
-    return TEAM_MEMBERS.map((m) => m.name).join(", ");
+    return "All";
   }
 
   // Handle [AMBIGUOUS] markers

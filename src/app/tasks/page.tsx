@@ -110,9 +110,6 @@ export default function TasksPage() {
     else { setSelected(new Set(filtered.map(t => t.id))); }
   };
 
-  // Get unique owners for filter — normalize to canonical team member names
-  const owners = TEAM_MEMBERS.map((m) => m.name);
-
   const now = new Date();
   const filtered = tasks.filter((t) => {
     // Status filter
@@ -182,7 +179,10 @@ export default function TasksPage() {
 
         <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} className="input text-[10px] py-1 px-2 w-auto">
           <option value="all">All owners</option>
-          {owners.map(o => <option key={o} value={o}>{o}</option>)}
+          <option value="Sven">Sven</option>
+          <option value="Hjalte">Hjalte</option>
+          <option value="Kristoffer">Kristoffer</option>
+          <option value="All">All (shared)</option>
         </select>
 
         {selected.size > 0 && (
