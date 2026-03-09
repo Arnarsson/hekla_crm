@@ -180,8 +180,8 @@ export default function TasksPage() {
         <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} className="input text-[10px] py-1 px-2 w-auto">
           <option value="all">All owners</option>
           <option value="Sven">Sven</option>
-          <option value="Hjalte">Hjalte</option>
-          <option value="Kristoffer">Kristoffer</option>
+          <option value="Hjalti">Hjalti</option>
+          <option value="Christopher">Christopher</option>
           <option value="All">All (shared)</option>
         </select>
 
