@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import type { Task, TaskPriority, TaskStatus } from "@/lib/types";
 import { Plus, Scan, CheckCircle, Trash2, ChevronDown, Pencil, X, Archive } from "lucide-react";
 import MemberPicker from "@/components/MemberPicker";
-import { TEAM_MEMBERS, normalizeOwner, getMemberColor, getMemberInitials } from "@/lib/team";
+import { normalizeOwnerWithConfidence, getMemberColor, getMemberInitials } from "@/lib/team";
 
 const PRIORITY_STYLES: Record<string, string> = {
   high: "bg-red-900/30 text-red-400 border-red-900/50",
@@ -121,7 +121,10 @@ export default function TasksPage() {
     }
     else if (filter !== "all") { if (t.status !== filter) return false; }
     // Owner filter — normalize raw owner to match canonical name
-    if (ownerFilter !== "all" && !normalizeOwner(t.owner).includes(ownerFilter)) return false;
+    if (ownerFilter !== "all") {
+      const { name } = normalizeOwnerWithConfidence(t.owner);
+      if (!name.includes(ownerFilter)) return false;
+    }
     return true;
   }).sort((a, b) => {
     const aOverdue = a.deadline && new Date(a.deadline) < now ? 1 : 0;
@@ -256,15 +259,18 @@ export default function TasksPage() {
                 </span>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>
                   {task.owner && (() => {
-                    const name = normalizeOwner(task.owner);
-                    return name ? (
+                    const { name, confidence } = normalizeOwnerWithConfidence(task.owner);
+                    if (!name) return null;
+                    const first = name.split(", ")[0];
+                    return (
                       <span className="flex items-center gap-1">
-                        <span className={`w-3.5 h-3.5 rounded-full ${getMemberColor(name.split(", ")[0])} flex items-center justify-center inline-flex`}>
-                          <span className="text-[6px] text-white font-bold">{getMemberInitials(name.split(", ")[0])}</span>
+                        <span className={`w-3.5 h-3.5 rounded-full ${getMemberColor(first)} flex items-center justify-center inline-flex`}>
+                          <span className="text-[6px] text-white font-bold">{getMemberInitials(first)}</span>
                         </span>
                         {name}
+                        {confidence < 0.7 && <span className="text-[8px] opacity-50" title={`Raw: ${task.owner}`}>?</span>}
                       </span>
-                    ) : null;
+                    );
                   })()}
                   {task.deadline && (
                     <span className={isOverdue ? "text-red-400 font-medium" : ""}>

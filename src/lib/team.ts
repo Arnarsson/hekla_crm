@@ -47,18 +47,31 @@ export function getMember(idOrName: string): TeamMember | undefined {
  * "All three" → "Sven, Hjalti, Christopher"
  * "Unassigned [AMBIGUOUS]" → "" (unassigned)
  */
+export interface NormalizedOwner {
+  name: string;
+  confidence: number; // 0-1
+}
+
 export function normalizeOwner(raw: string): string {
-  if (!raw) return "";
+  return normalizeOwnerWithConfidence(raw).name;
+}
+
+export function normalizeOwnerWithConfidence(raw: string): NormalizedOwner {
+  if (!raw) return { name: "", confidence: 0 };
   const lower = raw.toLowerCase().trim();
 
   // Handle "all three" / "all"
   if (lower === "all three" || lower === "all") {
-    return "All";
+    return { name: "All", confidence: 1 };
   }
 
-  // Handle [AMBIGUOUS] markers
-  if (lower.includes("unassigned") || lower === "[ambiguous]") return "";
+  // Handle [AMBIGUOUS] markers — try to extract a real name first
+  const hasAmbiguous = lower.includes("[ambiguous]");
   const cleaned = raw.replace(/\s*\[AMBIGUOUS\]\s*/g, "").trim();
+
+  if (lower.includes("unassigned") && !cleaned.replace(/unassigned/i, "").trim()) {
+    return { name: "", confidence: 0 };
+  }
 
   // Handle multi-person: "Sven / Hjalti", "Sven, Christopher James"
   const separators = /\s*[\/,]\s*/;
@@ -67,20 +80,51 @@ export function normalizeOwner(raw: string): string {
   if (parts.length > 1) {
     const resolved = parts
       .map((p) => {
-        // Remove parenthetical notes like "(Paola for photos)"
         const clean = p.replace(/\s*\(.*?\)\s*/g, "").trim();
         const member = getMember(clean);
         return member?.name || "";
       })
       .filter(Boolean);
-    // Deduplicate
-    return Array.from(new Set(resolved)).join(", ");
+    const unique = Array.from(new Set(resolved));
+    if (unique.length === TEAM_MEMBERS.length) {
+      return { name: "All", confidence: hasAmbiguous ? 0.6 : 0.9 };
+    }
+    if (unique.length > 0) {
+      return { name: unique.join(", "), confidence: hasAmbiguous ? 0.5 : 0.9 };
+    }
+    // Could not resolve any — guess from keywords
+    return guessMember(cleaned);
   }
 
   // Single person
   const cleanSingle = cleaned.replace(/\s*\(.*?\)\s*/g, "").trim();
   const member = getMember(cleanSingle);
-  return member?.name || cleanSingle;
+  if (member) {
+    return { name: member.name, confidence: hasAmbiguous ? 0.6 : 1 };
+  }
+
+  // No direct match — guess based on keywords
+  return guessMember(cleanSingle);
+}
+
+/** Guess the most likely team member from free text */
+function guessMember(text: string): NormalizedOwner {
+  const lower = text.toLowerCase();
+  // Check if any member name appears as substring
+  for (const m of TEAM_MEMBERS) {
+    if (lower.includes(m.name.toLowerCase()) || lower.includes(m.id)) {
+      return { name: m.name, confidence: 0.5 };
+    }
+  }
+  // Check aliases
+  for (const [alias, memberId] of Object.entries(ALIASES)) {
+    if (lower.includes(alias)) {
+      const member = TEAM_MEMBERS.find((m) => m.id === memberId);
+      if (member) return { name: member.name, confidence: 0.4 };
+    }
+  }
+  // Unknown — return raw text with low confidence
+  return { name: text, confidence: 0.2 };
 }
 
 /**
